@@ -1,9 +1,11 @@
 use rusqlite::Connection;
+use sea_orm::DatabaseConnection;
 use tauri::{AppHandle, State, Manager};
 
 use crate::player::Player;
 
 pub struct AppState {
+  pub conn: DatabaseConnection,
   pub db: std::sync::Mutex<Option<Connection>>,
   pub player: std::sync::Mutex<Option<Player>>,
 }

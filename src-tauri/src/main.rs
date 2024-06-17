@@ -13,13 +13,18 @@ pub mod state;
 pub mod player;
 pub mod utils;
 
+use entity::album;
 use persistent_entities::{PersistentTrack, PersistentAlbum, PersistentArtist, PersistentConfig};
 use player::Player;
+use sea_orm::Database;
+use service::Query;
 use tauri::{State, Manager, AppHandle};
 use rusqlite::Connection;
 use state::{AppState, ServiceAccess};
 use serde::Serialize;
 use regex::Regex;
+
+use std::{env, fs, sync::Mutex};
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -162,10 +167,13 @@ async fn get_album_ids(app_state: State<'_, AppState>) -> Result<Vec<i64>, Strin
 }
 
 #[tauri::command]
-async fn get_album(album_id: i64, app_state: State<'_, AppState>) -> Result<PersistentAlbum, String> {
-  let conn_guard = app_state.db.lock().unwrap();
-  let conn = conn_guard.as_ref().unwrap();
-  let album = library::get_album(album_id, conn).map_err(|err| err.to_string())?;
+async fn get_album(
+  album_id: i32,
+  state: tauri::State<'_, AppState>,
+) -> Result<Option<album::Model>, ()> {
+  let album = Query::find_album_by_id(&state.conn, album_id)
+      .await
+      .expect("Cannot find album");
 
   Ok(album)
 }
@@ -418,8 +426,26 @@ fn open_devtools(window: tauri::Window) {
 
 #[tokio::main]
 async fn main() {
+  let base_data_dir = match tauri::api::path::data_dir() {
+    Some(val) => val,
+    None => panic!("Could not get data directory"),
+  };
+  let data_dir = base_data_dir.join("net.lrclib.libget");
+  if let Err(_) = fs::metadata(&data_dir) {
+      fs::create_dir_all(&data_dir).expect("Could not create data directory");
+  }
+
+  let db_url = "sqlite://".to_string() + data_dir.to_str().unwrap() + "/db.sqlite?mode=rwc";
+  // let db_url = env::var("DATABASE_URL").expect("DATABASE_URL is not set in .env file");
+  println!("{}", db_url.to_string());
+
+  let conn = Database::connect(db_url)
+      .await
+      .expect("Database connection failed");
+
+  let state = AppState { conn, db: Default::default(), player: Default::default() };
   tauri::Builder::default()
-    .manage(AppState { db: Default::default(), player: Default::default() })
+    .manage(state)
     .setup(|app| {
       let handle = app.handle();
 
