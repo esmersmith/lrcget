@@ -24,7 +24,7 @@ use state::{AppState, ServiceAccess};
 use serde::Serialize;
 use regex::Regex;
 
-use std::{env, fs, sync::Mutex};
+use std::{env, fs};
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]

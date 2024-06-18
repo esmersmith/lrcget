@@ -21,8 +21,6 @@ impl Query {
     }
 
     pub async fn find_album(db: &DbConn, name: &str, artist_id: i32) -> Result<Option<album::Model>, DbErr> {
-        println!("{}", name);
-        println!("{}", artist_id);
         Album::find()
             .filter(
                 Condition::all()

@@ -7,8 +7,9 @@ use serde::{Deserialize, Serialize};
 #[sea_orm(table_name = "artists")]
 pub struct Model {
     #[sea_orm(primary_key)]
+    #[serde(skip_deserializing)]
     pub id: i32,
-    pub name: Option<String>,
+    pub name: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
